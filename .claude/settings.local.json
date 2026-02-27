@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls -la /c/AC/sam/.*)",
+      "Bash(node --version)",
+      "Bash(npm --version)",
+      "WebFetch(domain:www.infosportsworld.org)",
+      "WebFetch(domain:vinpearl.com)",
+      "Bash(npm create vite@latest . -- --template react-ts)",
+      "Bash(npx --yes create-vite@latest . --template react-ts)",
+      "Bash(npm init -y)",
+      "Bash(npm install react react-dom)",
+      "Bash(npm install -D typescript @types/react @types/react-dom vite @vitejs/plugin-react)",
+      "Bash(npx tsc --noEmit)",
+      "Bash(npx vite build)",
+      "Bash(npm install socket.io-client concurrently)",
+      "Bash(npm install)",
+      "Bash(timeout 5 npx tsx src/index.ts)",
+      "Bash(taskkill //F //IM node.exe)",
+      "Bash(wc -l c:/AC/sam/src/components/*.css c:/AC/sam/src/index.css)",
+      "Bash(npm install tailwindcss @tailwindcss/vite)"
+    ]
+  }
+}

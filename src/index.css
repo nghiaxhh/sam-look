@@ -1,0 +1,126 @@
+@import "tailwindcss";
+
+@theme {
+  --color-felt-green: #1a6b3c;
+  --color-felt-dark: #0e4025;
+  --color-card-white: #fafaf5;
+  --color-card-shadow: rgba(0, 0, 0, 0.3);
+  --color-red-suit: #cc0000;
+  --color-black-suit: #1a1a1a;
+  --color-highlight-gold: #ffd700;
+  --color-btn-primary: #d4a017;
+  --color-btn-hover: #b8860b;
+  --color-btn-danger: #c0392b;
+  --color-btn-disabled: #666;
+
+  --spacing-card-w: 60px;
+  --spacing-card-h: 88px;
+  --radius-card: 6px;
+
+  --animate-fade-in: fade-in 0.3s ease;
+  --animate-blink: blink 1s infinite;
+  --animate-pulse-warning: pulse-warning 0.8s infinite;
+  --animate-sam-banner-pulse: sam-banner-pulse 1.5s infinite;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  overflow: hidden;
+  background: var(--color-felt-dark);
+}
+
+#root {
+  width: 100vw;
+  height: 100vh;
+}
+
+/* Keyframes */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+@keyframes pulse-warning {
+  0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 8px rgba(231, 76, 60, 0.7), 0 0 16px rgba(231, 76, 60, 0.4); }
+  50% { opacity: 0.85; transform: scale(1.08); box-shadow: 0 0 14px rgba(231, 76, 60, 0.9), 0 0 28px rgba(231, 76, 60, 0.6); }
+}
+
+@keyframes sam-banner-pulse {
+  0%, 100% { box-shadow: 0 4px 16px rgba(231, 76, 60, 0.5); }
+  50% { box-shadow: 0 4px 24px rgba(231, 76, 60, 0.8); }
+}
+
+/* Card back pattern */
+.card-back-pattern {
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 4px,
+    rgba(255, 255, 255, 0.08) 4px,
+    rgba(255, 255, 255, 0.08) 8px
+  );
+  border-radius: calc(var(--radius-card) - 2px);
+}
+
+/* Radial gradient background */
+.bg-felt-radial {
+  background: radial-gradient(ellipse at center, var(--color-felt-green) 0%, var(--color-felt-dark) 100%);
+}
+
+/* GameBoard grid layouts */
+.game-board-grid.players-4 {
+  grid-template-areas:
+    ".        top      ."
+    "left     center   right"
+    ".        bottom   ."
+    ".        controls .";
+  grid-template-rows: auto 1fr auto auto;
+  grid-template-columns: 180px 1fr 180px;
+}
+
+.game-board-grid.players-3 {
+  grid-template-areas:
+    ".        center   ."
+    "left     center   right"
+    ".        bottom   ."
+    ".        controls .";
+  grid-template-rows: auto 1fr auto auto;
+  grid-template-columns: 180px 1fr 180px;
+}
+
+.game-board-grid.players-2 {
+  grid-template-areas:
+    ".        top      ."
+    ".        center   ."
+    ".        bottom   ."
+    ".        controls .";
+  grid-template-rows: auto 1fr auto auto;
+  grid-template-columns: 1fr 2fr 1fr;
+}
+
+.game-board-grid.players-5 {
+  grid-template-areas:
+    ".        topleft  topright ."
+    "left     center   center   right"
+    ".        bottom   bottom   ."
+    ".        controls controls .";
+  grid-template-rows: auto 1fr auto auto;
+  grid-template-columns: 160px 1fr 1fr 160px;
+}
+
+/* Grid area assignments */
+.grid-area-top { grid-area: top; }
+.grid-area-topleft { grid-area: topleft; }
+.grid-area-topright { grid-area: topright; }
+.grid-area-left { grid-area: left; }
+.grid-area-right { grid-area: right; }
+.grid-area-bottom { grid-area: bottom; }
+.grid-area-center { grid-area: center; }
+.grid-area-controls { grid-area: controls; }
