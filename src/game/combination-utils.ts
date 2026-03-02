@@ -2,6 +2,10 @@ import { Card, Combination, Rank } from '../types/game';
 import { RANK_VALUES, RANKS } from './constants';
 import { getCardValue } from './card-utils';
 
+function getHighCardValue(combo: Combination): number {
+  return Math.max(...combo.cards.map(c => getCardValue(c)));
+}
+
 function getRankValue(rank: Rank): number {
   return RANK_VALUES[rank];
 }
@@ -77,8 +81,9 @@ function isPairOfTwos(combo: Combination): boolean {
 
 export function canBeat(current: Combination, proposed: Combination): boolean {
   if (isSingleTwo(current)) {
-    if (proposed.type === 'single' && getRankValue(proposed.highRank) > getRankValue(current.highRank)) {
-      return true;
+    // Another single 2 with higher suit can beat
+    if (proposed.type === 'single' && proposed.highRank === '2') {
+      return getHighCardValue(proposed) > getHighCardValue(current);
     }
     if (proposed.type === 'four_of_a_kind') return true;
     if (proposed.type === 'pair_sequence' && proposed.length >= 3) return true;
@@ -97,11 +102,23 @@ export function canBeat(current: Combination, proposed: Combination): boolean {
     return false;
   }
 
-  return getRankValue(proposed.highRank) > getRankValue(current.highRank);
+  // Compare by high card value (rank + suit) for proper ordering
+  return getHighCardValue(proposed) > getHighCardValue(current);
 }
 
 export function containsThreeOfSpades(cards: Card[]): boolean {
   return cards.some(c => c.rank === '3' && c.suit === 'spades');
+}
+
+/**
+ * Check if playing these cards would leave only 2s in hand.
+ * In Sâm Lốc, you cannot end with only 2s remaining.
+ */
+export function wouldLeaveOnlyTwos(hand: Card[], playedCards: Card[]): boolean {
+  const playedIds = new Set(playedCards.map(c => c.id));
+  const remaining = hand.filter(c => !playedIds.has(c.id));
+  if (remaining.length === 0) return false; // playing all cards is fine
+  return remaining.every(c => c.rank === '2');
 }
 
 // Helper: pick k items from array, return all combinations

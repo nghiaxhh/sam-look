@@ -6,7 +6,7 @@ import RoomScreen from './components/RoomScreen';
 import GameBoard from './components/GameBoard';
 
 function GameScreen() {
-  const { state, playCards, pass, newGame, leaveRoom, declareSam, skipSam } = useAppContext();
+  const { state, playCards, pass, newGame, readyForNextGame, leaveRoom, declareSam, skipSam } = useAppContext();
 
   const {
     selectedCardIds,
@@ -33,6 +33,7 @@ function GameScreen() {
       onPlay={handlePlay}
       onPass={handlePass}
       onNewGame={newGame}
+      onReady={readyForNextGame}
       onLeaveRoom={leaveRoom}
       onDeclareSam={declareSam}
       onSkipSam={skipSam}

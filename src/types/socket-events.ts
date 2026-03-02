@@ -99,6 +99,8 @@ export interface GameStatePayload {
   samPlayerId: string | null;
   samResult: SamResult | null;
   turnDeadline: number;
+  revealedHands: Record<string, Card[]> | null;
+  readyPlayerIds: string[];
 }
 
 export interface PlayerDisconnectedPayload {

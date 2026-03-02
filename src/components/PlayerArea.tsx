@@ -5,6 +5,7 @@ import Hand from './Hand';
 interface PlayerAreaProps {
   player: GamePlayerInfo;
   myHand?: CardType[];
+  revealedHand?: CardType[];
   isCurrentTurn: boolean;
   isMe: boolean;
   position: 'top' | 'left' | 'right' | 'bottom' | 'top-left' | 'top-right';
@@ -25,6 +26,7 @@ const positionClasses: Record<string, string> = {
 export default function PlayerArea({
   player,
   myHand,
+  revealedHand,
   isCurrentTurn,
   isMe,
   position,
@@ -32,13 +34,18 @@ export default function PlayerArea({
   onCardClick,
   showCardCount,
 }: PlayerAreaProps) {
+  // Use revealed hand on game over, own hand for self, or dummy cards for opponents
   const cards: CardType[] = isMe && myHand
     ? myHand
-    : Array.from({ length: player.cardCount }, (_, i) => ({
-        rank: '3' as Rank,
-        suit: 'spades' as Suit,
-        id: `hidden-${player.id}-${i}`,
-      }));
+    : revealedHand
+      ? revealedHand
+      : Array.from({ length: player.cardCount }, (_, i) => ({
+          rank: '3' as Rank,
+          suit: 'spades' as Suit,
+          id: `hidden-${player.id}-${i}`,
+        }));
+
+  const showFaceUp = isMe || !!revealedHand;
 
   return (
     <div className={`flex flex-col items-center gap-1 p-2 rounded-[10px] transition-colors duration-300 ${positionClasses[position]} ${isCurrentTurn ? 'bg-[rgba(255,215,0,0.12)]' : ''} ${player.hasPassed ? 'opacity-55' : ''}`}>
@@ -64,7 +71,7 @@ export default function PlayerArea({
       )}
       <Hand
         cards={cards}
-        faceUp={isMe}
+        faceUp={showFaceUp}
         selectedCardIds={isMe ? selectedCardIds : new Set()}
         onCardClick={isMe ? onCardClick : undefined}
         small={!isMe}

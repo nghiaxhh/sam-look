@@ -9,6 +9,7 @@ export interface ServerPlayer {
   score: number;
   samDeclared: boolean;
   samReady: boolean;
+  readyForNextGame: boolean;
 }
 
 export interface TrickPlay {
@@ -72,6 +73,7 @@ export class RoomManager {
         score: 0,
         samDeclared: false,
         samReady: false,
+        readyForNextGame: false,
       };
       room = {
         id: roomId,
@@ -106,6 +108,7 @@ export class RoomManager {
       score: 0,
       samDeclared: false,
       samReady: false,
+      readyForNextGame: false,
     };
     room.players.push(player);
     return room;

@@ -6,7 +6,7 @@ interface TurnTimerProps {
 }
 
 export default function TurnTimer({ deadline, active }: TurnTimerProps) {
-  const [remaining, setRemaining] = useState(10);
+  const [remaining, setRemaining] = useState(15);
 
   useEffect(() => {
     if (!active) return;
@@ -23,8 +23,8 @@ export default function TurnTimer({ deadline, active }: TurnTimerProps) {
 
   if (!active) return null;
 
-  const fraction = remaining / 10;
-  const isUrgent = remaining < 3;
+  const fraction = remaining / 15;
+  const isUrgent = remaining < 5;
 
   return (
     <div className="flex items-center gap-2 w-40">

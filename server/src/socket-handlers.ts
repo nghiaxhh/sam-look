@@ -34,7 +34,7 @@ function startTurnTimer(io: Server, room: Room) {
     if (currentRoom.gameState && (currentRoom.gameState.phase as string) !== 'game_over') {
       startTurnTimer(io, currentRoom);
     }
-  }, 10000);
+  }, 15000);
 
   turnTimers.set(roomId, timer);
 }
@@ -203,12 +203,32 @@ export function registerSocketHandlers(io: Server, socket: Socket) {
     startTurnTimer(io, room);
   });
 
+  socket.on('client:ready-for-next-game', (data: { roomId: string }) => {
+    const room = roomManager.getRoom(data.roomId);
+    if (!room || !room.gameState || room.gameState.phase !== 'game_over') return;
+
+    const player = room.gameState.players.find(p => p.socketId === socket.id);
+    if (!player) return;
+
+    player.readyForNextGame = true;
+    broadcastGameState(io, room);
+  });
+
   socket.on('client:new-game', (data: { roomId: string }) => {
     const room = roomManager.getRoom(data.roomId);
     if (!room) return;
     if (room.hostId !== socket.id) {
       socket.emit('server:error', { message: 'Chỉ chủ phòng mới bắt đầu ván mới!' });
       return;
+    }
+
+    // Check all non-host players are ready
+    if (room.gameState) {
+      const nonHostPlayers = room.gameState.players.filter(p => p.socketId !== room.hostId);
+      if (nonHostPlayers.length > 0 && !nonHostPlayers.every(p => p.readyForNextGame)) {
+        socket.emit('server:error', { message: 'Chưa tất cả người chơi sẵn sàng!' });
+        return;
+      }
     }
 
     const previousWinner = room.gameState?.winnerId ?? undefined;

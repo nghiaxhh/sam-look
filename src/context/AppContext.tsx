@@ -24,6 +24,7 @@ interface AppContextValue {
   leaveRoom: () => void;
   startGame: () => void;
   newGame: () => void;
+  readyForNextGame: () => void;
   playCards: (cardIds: string[]) => void;
   pass: () => void;
   declareSam: () => void;
@@ -171,6 +172,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     state.socket.emit('client:new-game', { roomId: state.roomId });
   }, [state.socket, state.roomId]);
 
+  const readyForNextGame = useCallback(() => {
+    if (!state.socket || !state.roomId) return;
+    state.socket.emit('client:ready-for-next-game', { roomId: state.roomId });
+  }, [state.socket, state.roomId]);
+
   const playCards = useCallback((cardIds: string[]) => {
     if (!state.socket || !state.roomId) return;
     state.socket.emit('client:play-cards', { roomId: state.roomId, cardIds });
@@ -221,6 +227,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       leaveRoom,
       startGame,
       newGame,
+      readyForNextGame,
       playCards,
       pass,
       declareSam,

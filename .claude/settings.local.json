@@ -18,7 +18,8 @@
       "Bash(timeout 5 npx tsx src/index.ts)",
       "Bash(taskkill //F //IM node.exe)",
       "Bash(wc -l c:/AC/sam/src/components/*.css c:/AC/sam/src/index.css)",
-      "Bash(npm install tailwindcss @tailwindcss/vite)"
+      "Bash(npm install tailwindcss @tailwindcss/vite)",
+      "Bash(npx tsc --noEmit -p server/tsconfig.json)"
     ]
   }
 }

@@ -25,6 +25,7 @@ interface GameBoardProps {
   onPlay: () => void;
   onPass: () => void;
   onNewGame: () => void;
+  onReady: () => void;
   onLeaveRoom: () => void;
   onDeclareSam: () => void;
   onSkipSam: () => void;
@@ -43,6 +44,7 @@ export default function GameBoard({
   onPlay,
   onPass,
   onNewGame,
+  onReady,
   onLeaveRoom,
   onDeclareSam,
   onSkipSam,
@@ -55,6 +57,10 @@ export default function GameBoard({
 }: GameBoardProps) {
   const isGameOver = gameState.phase === 'game_over';
   const isSamPhase = gameState.phase === 'sam_playing';
+
+  // All non-host players must be ready for host to start new game
+  const nonHostPlayers = gameState.players.filter(p => p.id !== gameState.hostId);
+  const allReady = nonHostPlayers.length > 0 && nonHostPlayers.every(p => gameState.readyPlayerIds.includes(p.id));
 
   const myIndex = gameState.players.findIndex(p => p.id === gameState.myPlayerId);
   const playerCount = gameState.players.length;
@@ -94,6 +100,7 @@ export default function GameBoard({
           key={player.id}
           player={player}
           myHand={isMe ? gameState.myHand : undefined}
+          revealedHand={isGameOver && !isMe && gameState.revealedHands?.[player.id] || undefined}
           isCurrentTurn={gameState.currentPlayerId === player.id && !isGameOver}
           isMe={isMe}
           position={position}
@@ -168,9 +175,13 @@ export default function GameBoard({
           winnerId={gameState.winnerId}
           players={gameState.players}
           onNewGame={onNewGame}
+          onReady={onReady}
           onLeaveRoom={onLeaveRoom}
           isHost={isHost}
           samResult={gameState.samResult}
+          readyPlayerIds={gameState.readyPlayerIds}
+          myPlayerId={gameState.myPlayerId}
+          allReady={allReady}
         />
       )}
     </div>

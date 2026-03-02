@@ -28,8 +28,12 @@ export function dealCards(deck: Card[], playerCount: number = 4): Card[][] {
   return hands.map(sortHand);
 }
 
+const SUIT_VALUES: Record<Suit, number> = {
+  spades: 0, clubs: 1, diamonds: 2, hearts: 3,
+};
+
 export function getCardValue(card: Card): number {
-  return RANK_VALUES[card.rank];
+  return RANK_VALUES[card.rank] * 4 + SUIT_VALUES[card.suit];
 }
 
 export function compareCards(a: Card, b: Card): number {

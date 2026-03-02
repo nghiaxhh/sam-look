@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { Card } from '../types/game';
 import type { GameStatePayload } from '../types/socket-events';
-import { classifyCombination, canBeat } from '../game/combination-utils';
+import { classifyCombination, canBeat, wouldLeaveOnlyTwos } from '../game/combination-utils';
 
 export function useGameState(
   gameState: GameStatePayload | null,
@@ -36,6 +36,9 @@ export function useGameState(
 
     const combo = classifyCombination(selectedCards);
     if (!combo) return false;
+
+    // Cannot leave only 2s in hand
+    if (wouldLeaveOnlyTwos(gameState.myHand, selectedCards)) return false;
 
     if (gameState.currentTrick) {
       // During sam_playing, sam player plays freely (no need to beat own trick)
@@ -76,6 +79,11 @@ export function useGameState(
     const combo = classifyCombination(selectedCards);
     if (!combo) {
       setErrorMessage('Bài không hợp lệ!');
+      return;
+    }
+
+    if (wouldLeaveOnlyTwos(gameState.myHand, selectedCards)) {
+      setErrorMessage('Không được để lại chỉ toàn lá 2!');
       return;
     }
 
