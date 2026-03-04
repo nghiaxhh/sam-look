@@ -34,6 +34,13 @@ export interface SamResult {
   pointsPerPlayer: number;
 }
 
+export interface FourOfAKindBlock {
+  blockerId: string;
+  blockerName: string;
+  blockedPlayerId: string;
+  blockedPlayerName: string;
+}
+
 export interface ServerGameState {
   phase: 'declaring' | 'playing' | 'sam_playing' | 'game_over';
   players: ServerPlayer[];
@@ -47,6 +54,7 @@ export interface ServerGameState {
   samPlayerId: string | null;
   samResult: SamResult | null;
   turnDeadline: number;
+  fourOfAKindBlock: FourOfAKindBlock | null;
 }
 
 export interface Room {

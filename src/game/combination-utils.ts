@@ -2,8 +2,8 @@ import { Card, Combination, Rank } from '../types/game';
 import { RANK_VALUES, RANKS } from './constants';
 import { getCardValue } from './card-utils';
 
-function getHighCardValue(combo: Combination): number {
-  return Math.max(...combo.cards.map(c => getCardValue(c)));
+function getHighRankValue(combo: Combination): number {
+  return getRankValue(combo.highRank);
 }
 
 function getRankValue(rank: Rank): number {
@@ -20,13 +20,48 @@ function groupByRank(cards: Card[]): Map<Rank, Card[]> {
   return groups;
 }
 
-function areConsecutiveRanks(ranks: Rank[]): boolean {
-  const values = ranks.map(r => getRankValue(r)).sort((a, b) => a - b);
-  if (values.some(v => v === 15)) return false;
-  for (let i = 1; i < values.length; i++) {
-    if (values[i] - values[i - 1] !== 1) return false;
+function areConsecutive(values: number[]): boolean {
+  const sorted = [...values].sort((a, b) => a - b);
+  for (let i = 1; i < sorted.length; i++) {
+    if (sorted[i] - sorted[i - 1] !== 1) return false;
   }
   return true;
+}
+
+interface SeqCheckResult { valid: boolean; twoIsLow: boolean; aceIsLow: boolean }
+
+function checkConsecutiveRanks(ranks: Rank[]): SeqCheckResult {
+  const values = ranks.map(r => getRankValue(r));
+  const hasTwo = values.includes(15);
+
+  if (!hasTwo) {
+    return { valid: areConsecutive(values), twoIsLow: false, aceIsLow: false };
+  }
+
+  // Forbid any sequence containing both K and 2
+  if (values.includes(13)) return { valid: false, twoIsLow: false, aceIsLow: false };
+
+  // Try 2 as high (value 15): not possible without K-A bridge, but check anyway
+  if (areConsecutive(values)) return { valid: true, twoIsLow: false, aceIsLow: false };
+
+  // Try 2 as low (value 2): works for 2-3-4, 2-3-4-5, etc.
+  const lowValues = values.map(v => v === 15 ? 2 : v);
+  if (areConsecutive(lowValues)) return { valid: true, twoIsLow: true, aceIsLow: false };
+
+  // Try A as 1 and 2 as 2: works for A-2-3, A-2-3-4-5-6, etc.
+  if (values.includes(14)) {
+    const aceLowValues = values.map(v => v === 15 ? 2 : v === 14 ? 1 : v);
+    if (areConsecutive(aceLowValues)) return { valid: true, twoIsLow: true, aceIsLow: true };
+  }
+
+  return { valid: false, twoIsLow: false, aceIsLow: false };
+}
+
+function getSeqHighRank(sorted: Card[], aceIsLow: boolean): Rank {
+  const lowRanks: Set<Rank> = new Set(['2']);
+  if (aceIsLow) lowRanks.add('A');
+  const filtered = sorted.filter(c => !lowRanks.has(c.rank));
+  return filtered[filtered.length - 1].rank;
 }
 
 export function classifyCombination(cards: Card[]): Combination | null {
@@ -54,16 +89,24 @@ export function classifyCombination(cards: Card[]): Combination | null {
   }
 
   if (cards.length >= 3 && uniqueRanks.length === cards.length) {
-    if (areConsecutiveRanks(uniqueRanks)) {
-      return { type: 'sequence', cards: sorted, highRank: highCard.rank, length: cards.length };
+    const seq = checkConsecutiveRanks(uniqueRanks);
+    if (seq.valid) {
+      const seqHighRank = seq.twoIsLow
+        ? getSeqHighRank(sorted, seq.aceIsLow)
+        : highCard.rank;
+      return { type: 'sequence', cards: sorted, highRank: seqHighRank, length: cards.length, twoIsLow: seq.twoIsLow };
     }
   }
 
   if (cards.length >= 6 && cards.length % 2 === 0) {
     const allPairs = Array.from(groups.values()).every(g => g.length === 2);
     if (allPairs && uniqueRanks.length === cards.length / 2 && uniqueRanks.length >= 3) {
-      if (areConsecutiveRanks(uniqueRanks)) {
-        return { type: 'pair_sequence', cards: sorted, highRank: highCard.rank, length: uniqueRanks.length };
+      const seq = checkConsecutiveRanks(uniqueRanks);
+      if (seq.valid) {
+        const seqHighRank = seq.twoIsLow
+          ? getSeqHighRank(sorted, seq.aceIsLow)
+          : highCard.rank;
+        return { type: 'pair_sequence', cards: sorted, highRank: seqHighRank, length: uniqueRanks.length, twoIsLow: seq.twoIsLow };
       }
     }
   }
@@ -81,16 +124,14 @@ function isPairOfTwos(combo: Combination): boolean {
 
 export function canBeat(current: Combination, proposed: Combination): boolean {
   if (isSingleTwo(current)) {
-    // Another single 2 with higher suit can beat
-    if (proposed.type === 'single' && proposed.highRank === '2') {
-      return getHighCardValue(proposed) > getHighCardValue(current);
-    }
+    // Same-rank cards are equal — a single 2 cannot beat another single 2
     if (proposed.type === 'four_of_a_kind') return true;
     if (proposed.type === 'pair_sequence' && proposed.length >= 3) return true;
     return false;
   }
 
   if (isPairOfTwos(current)) {
+    // A pair of 2s cannot beat another pair of 2s
     if (proposed.type === 'four_of_a_kind') return true;
     if (proposed.type === 'pair_sequence' && proposed.length >= 4) return true;
     return false;
@@ -102,8 +143,8 @@ export function canBeat(current: Combination, proposed: Combination): boolean {
     return false;
   }
 
-  // Compare by high card value (rank + suit) for proper ordering
-  return getHighCardValue(proposed) > getHighCardValue(current);
+  // Compare by rank only — same rank cards are equal regardless of suit
+  return getHighRankValue(proposed) > getHighRankValue(current);
 }
 
 export function containsThreeOfSpades(cards: Card[]): boolean {
@@ -182,24 +223,13 @@ export function getAllValidPlays(
   }
 
   // --- Sequences (3+ consecutive singles) ---
-  // Get sorted rank indices available in hand (exclude '2')
   const availableRanks = rankOrder
-    .filter(r => r !== '2')
     .sort((a, b) => getRankValue(a) - getRankValue(b));
 
   for (let seqLen = 3; seqLen <= availableRanks.length; seqLen++) {
     for (let start = 0; start <= availableRanks.length - seqLen; start++) {
       const seqRanks = availableRanks.slice(start, start + seqLen);
-      // Check consecutive
-      const values = seqRanks.map(r => getRankValue(r));
-      let consecutive = true;
-      for (let i = 1; i < values.length; i++) {
-        if (values[i] - values[i - 1] !== 1) {
-          consecutive = false;
-          break;
-        }
-      }
-      if (!consecutive) continue;
+      if (!checkConsecutiveRanks(seqRanks).valid) continue;
 
       // For each rank in the sequence, pick 1 card — generate all combos
       const cardChoices = seqRanks.map(r => groups.get(r)!);
@@ -213,15 +243,7 @@ export function getAllValidPlays(
   for (let pairCount = 3; pairCount <= ranksWithPairs.length; pairCount++) {
     for (let start = 0; start <= ranksWithPairs.length - pairCount; start++) {
       const pairRanks = ranksWithPairs.slice(start, start + pairCount);
-      const values = pairRanks.map(r => getRankValue(r));
-      let consecutive = true;
-      for (let i = 1; i < values.length; i++) {
-        if (values[i] - values[i - 1] !== 1) {
-          consecutive = false;
-          break;
-        }
-      }
-      if (!consecutive) continue;
+      if (!checkConsecutiveRanks(pairRanks).valid) continue;
 
       // For each rank, pick 2 cards
       const pairChoices = pairRanks.map(r => pickK(groups.get(r)!, 2));

@@ -1,7 +1,9 @@
+import { useEffect, useRef, useState } from 'react';
 import type { Card as CardType } from '../types/game';
-import type { GameStatePayload } from '../types/socket-events';
+import type { FourOfAKindBlock, GameStatePayload } from '../types/socket-events';
 import PlayerArea from './PlayerArea';
 import Card from './Card';
+import Confetti from './Confetti';
 import GameControls from './GameControls';
 import GameOverDialog from './GameOverDialog';
 import SamDeclaration from './SamDeclaration';
@@ -58,6 +60,31 @@ export default function GameBoard({
   const isGameOver = gameState.phase === 'game_over';
   const isSamPhase = gameState.phase === 'sam_playing';
 
+  // Track four-of-a-kind block for confetti
+  const [activeBlock, setActiveBlock] = useState<FourOfAKindBlock | null>(null);
+  const prevBlockIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    const block = gameState.fourOfAKindBlock;
+    // Use a stable key to detect new blocks (not reference comparison)
+    const blockKey = block ? `${block.blockerId}-${block.blockedPlayerId}` : null;
+    if (block && blockKey !== prevBlockIdRef.current) {
+      setActiveBlock(block);
+      prevBlockIdRef.current = blockKey;
+      const timer = setTimeout(() => setActiveBlock(null), 3000);
+      return () => clearTimeout(timer);
+    }
+    if (!block) {
+      prevBlockIdRef.current = null;
+    }
+  }, [gameState.fourOfAKindBlock]);
+
+  // Clear popup immediately when game ends
+  useEffect(() => {
+    if (isGameOver) {
+      setActiveBlock(null);
+    }
+  }, [isGameOver]);
+
   // All non-host players must be ready for host to start new game
   const nonHostPlayers = gameState.players.filter(p => p.id !== gameState.hostId);
   const allReady = nonHostPlayers.length > 0 && nonHostPlayers.every(p => gameState.readyPlayerIds.includes(p.id));
@@ -82,6 +109,16 @@ export default function GameBoard({
 
   return (
     <div className={`w-screen h-screen bg-felt-radial grid gap-0 p-2 relative game-board-grid players-${playerCount}`}>
+      {/* Four-of-a-kind block confetti + banner */}
+      {activeBlock && (
+        <>
+          <Confetti duration={3000} />
+          <div className="fixed top-12 left-1/2 -translate-x-1/2 z-201 bg-linear-to-br from-[#f39c12] to-[#e67e22] text-white py-3 px-8 rounded-2xl text-lg font-bold shadow-[0_4px_24px_rgba(243,156,18,0.6)] animate-fade-in">
+            {activeBlock.blockerName} chặn tứ quý {activeBlock.blockedPlayerName}!
+          </div>
+        </>
+      )}
+
       {/* Scoreboard */}
       <div className="fixed top-2.5 right-2.5 bg-black/60 border border-white/15 rounded-[10px] py-2 px-3 z-50 min-w-30 backdrop-blur-sm">
         <div className="text-white/50 text-[11px] font-semibold text-center mb-1.5 uppercase tracking-wider">Điểm</div>

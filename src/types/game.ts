@@ -21,6 +21,7 @@ export interface Combination {
   cards: Card[];
   highRank: Rank;
   length: number;
+  twoIsLow?: boolean;
 }
 
 export interface Player {

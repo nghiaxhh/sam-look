@@ -22,6 +22,8 @@
   --animate-blink: blink 1s infinite;
   --animate-pulse-warning: pulse-warning 0.8s infinite;
   --animate-sam-banner-pulse: sam-banner-pulse 1.5s infinite;
+  --animate-confetti-fall: confetti-fall 2s ease-in forwards;
+  --animate-confetti-spin: confetti-spin 1s linear infinite;
 }
 
 body {
@@ -59,6 +61,17 @@ body {
 @keyframes sam-banner-pulse {
   0%, 100% { box-shadow: 0 4px 16px rgba(231, 76, 60, 0.5); }
   50% { box-shadow: 0 4px 24px rgba(231, 76, 60, 0.8); }
+}
+
+@keyframes confetti-fall {
+  0% { transform: translateY(-10px); opacity: 1; }
+  85% { opacity: 1; }
+  100% { transform: translateY(100vh); opacity: 0; }
+}
+
+@keyframes confetti-spin {
+  0% { transform: rotateX(0deg) rotateY(0deg); }
+  100% { transform: rotateX(360deg) rotateY(180deg); }
 }
 
 /* Card back pattern */

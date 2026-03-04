@@ -18,7 +18,7 @@ import type {
   SamResult,
   TrickPlayInfo,
 } from "../../src/types/socket-events.js";
-import type { Room, ServerGameState, TrickPlay } from "./room-manager.js";
+import type { FourOfAKindBlock, Room, ServerGameState, TrickPlay } from "./room-manager.js";
 
 const TURN_TIMEOUT_MS = 15000;
 
@@ -61,6 +61,7 @@ export class GameManager {
       samPlayerId: null,
       samResult: null,
       turnDeadline: Date.now() + TURN_TIMEOUT_MS,
+      fourOfAKindBlock: null,
     };
   }
 
@@ -333,6 +334,7 @@ export class GameManager {
 
     gs.phase = "game_over";
     gs.winnerId = gs.samPlayerId;
+    gs.fourOfAKindBlock = null;
   }
 
   private samFailed(
@@ -359,6 +361,7 @@ export class GameManager {
 
     gs.phase = "game_over";
     gs.winnerId = blockerId;
+    gs.fourOfAKindBlock = null;
   }
 
   private normalWin(gs: ServerGameState, winnerId: string): void {
@@ -378,6 +381,7 @@ export class GameManager {
 
     gs.phase = "game_over";
     gs.winnerId = winnerId;
+    gs.fourOfAKindBlock = null;
   }
 
   processPlay(
@@ -412,11 +416,37 @@ export class GameManager {
       return { success: false, error: "Bài không đủ lớn!" };
     }
 
+    // Detect four-of-a-kind blocking a single 2 or pair of 2s
+    gs.fourOfAKindBlock = null;
+    if (
+      gs.currentTrick &&
+      combo.type === "four_of_a_kind" &&
+      (gs.currentTrick.combination.highRank === "2") &&
+      (gs.currentTrick.combination.type === "single" ||
+        gs.currentTrick.combination.type === "pair")
+    ) {
+      const blockedPlayer = gs.players.find(
+        (p) => p.socketId === gs.currentTrick!.playerId,
+      )!;
+      const BLOCK_POINTS = 15;
+      currentPlayer.score += BLOCK_POINTS;
+      blockedPlayer.score -= BLOCK_POINTS;
+      gs.fourOfAKindBlock = {
+        blockerId: socketId,
+        blockerName: currentPlayer.name,
+        blockedPlayerId: blockedPlayer.socketId,
+        blockedPlayerName: blockedPlayer.name,
+      };
+    }
+
     // Remove cards from hand
     const cardIdSet = new Set(cardIds);
     currentPlayer.hand = sortHand(
       currentPlayer.hand.filter((c) => !cardIdSet.has(c.id)),
     );
+
+    // Was this a free play (no existing trick) or a beat?
+    const wasFreePlay = gs.currentTrick === null;
 
     // New trick
     const trickPlay: TrickPlay = {
@@ -428,10 +458,14 @@ export class GameManager {
     gs.trickLeaderId = socketId;
     gs.isFirstTurnOfGame = false;
 
-    // Reset all passes (new trick leader)
-    gs.players.forEach((p) => {
-      p.hasPassed = false;
-    });
+    if (wasFreePlay) {
+      // New trick from free play: reset all passes
+      gs.players.forEach((p) => {
+        p.hasPassed = false;
+      });
+    }
+    // When beating an existing trick: keep passes — players who already
+    // passed in this trick are NOT allowed to play again (Sâm Lốc rules)
 
     // Log
     gs.gameLog.push({
@@ -487,16 +521,20 @@ export class GameManager {
       const leaderIndex = gs.players.findIndex(
         (p) => p.socketId === gs.trickLeaderId,
       );
+      gs.currentTrick = null;
+      gs.players.forEach((p) => {
+        p.hasPassed = false;
+      });
       if (leaderIndex !== -1 && gs.players[leaderIndex].hand.length > 0) {
-        gs.currentTrick = null;
         gs.currentPlayerIndex = leaderIndex;
-        gs.players.forEach((p) => {
-          p.hasPassed = false;
-        });
-        this.resetDeadline(gs);
-        this.autoPassDisconnected(room);
-        return { success: true };
+      } else {
+        // Leader has no cards (already finished), find next player with cards
+        gs.currentPlayerIndex = this.getNextActivePlayer(gs, leaderIndex !== -1 ? leaderIndex : gs.currentPlayerIndex);
+        gs.trickLeaderId = gs.players[gs.currentPlayerIndex].socketId;
       }
+      this.resetDeadline(gs);
+      this.autoPassDisconnected(room);
+      return { success: true };
     }
 
     gs.currentPlayerIndex = this.getNextActivePlayer(gs, gs.currentPlayerIndex);
@@ -542,15 +580,18 @@ export class GameManager {
           const leaderIndex = gs.players.findIndex(
             (p) => p.socketId === gs.trickLeaderId,
           );
+          gs.currentTrick = null;
+          gs.players.forEach((p) => {
+            p.hasPassed = false;
+          });
           if (leaderIndex !== -1 && gs.players[leaderIndex].hand.length > 0) {
-            gs.currentTrick = null;
             gs.currentPlayerIndex = leaderIndex;
-            gs.players.forEach((p) => {
-              p.hasPassed = false;
-            });
-            this.autoPassDisconnected(room);
-            return;
+          } else {
+            gs.currentPlayerIndex = this.getNextActivePlayer(gs, leaderIndex !== -1 ? leaderIndex : gs.currentPlayerIndex);
+            gs.trickLeaderId = gs.players[gs.currentPlayerIndex].socketId;
           }
+          this.autoPassDisconnected(room);
+          return;
         }
 
         gs.currentPlayerIndex = this.getNextActivePlayer(
@@ -732,6 +773,7 @@ export class GameManager {
       turnDeadline: gs.turnDeadline,
       revealedHands,
       readyPlayerIds,
+      fourOfAKindBlock: gs.fourOfAKindBlock,
     };
   }
 }

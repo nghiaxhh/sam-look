@@ -83,6 +83,13 @@ export interface SamResult {
   pointsPerPlayer: number;
 }
 
+export interface FourOfAKindBlock {
+  blockerId: string;
+  blockerName: string;
+  blockedPlayerId: string;
+  blockedPlayerName: string;
+}
+
 export interface GameStatePayload {
   phase: 'declaring' | 'playing' | 'sam_playing' | 'game_over';
   players: GamePlayerInfo[];
@@ -101,6 +108,7 @@ export interface GameStatePayload {
   turnDeadline: number;
   revealedHands: Record<string, Card[]> | null;
   readyPlayerIds: string[];
+  fourOfAKindBlock: FourOfAKindBlock | null;
 }
 
 export interface PlayerDisconnectedPayload {
